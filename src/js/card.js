@@ -24,8 +24,6 @@ export default class Card {
     let topDiff = 0;
     let leftDiff = 0;
     const movedCard = this;
-
-    const cardBoxes = document.querySelectorAll('.cards-container');
     const board = document.querySelector('.board');
 
     function mouseDown(e) {
@@ -66,12 +64,18 @@ export default class Card {
 
       const closestElem = document.elementFromPoint(e.clientX, e.clientY);
 
-      if (closestElem.classList.contains('card') && closestElem !== card) {
+      if (closestElem.classList.contains('card') || closestElem.classList.contains('add-link')) {
         const space = document.createElement('div');
         space.classList.add('.card-pre-removed');
         space.dataset.space = true;
         space.style.height = `${card.getBoundingClientRect().height}px`;
-        closestElem.closest('.cards-container').insertBefore(space, closestElem);
+        const column = closestElem.closest('.column');
+        const cardBox = column.querySelector('.cards-container');
+        if (cardBox.children.length > 0 && closestElem.classList.contains('card')) {
+          cardBox.insertBefore(space, closestElem);
+        } else {
+          cardBox.appendChild(space);
+        }
       }
     }
 
@@ -81,37 +85,43 @@ export default class Card {
       const prevSpace = document.querySelector('div[data-space]');
       if (prevSpace) prevSpace.remove();
 
-      board.style.cursor = 'grab';
-
-      const closestCard = document.elementFromPoint(e.clientX, e.clientY);
+      const closestElem = document.elementFromPoint(e.clientX, e.clientY);
       const columns = document.querySelectorAll('.column');
 
-      if (closestCard.classList.contains('card') && closestCard !== card) {
-        closestCard.closest('.cards-container').insertBefore(card, closestCard);
-        card.classList.remove('card-pre-removed');
-        movedCard.columnIndex = [...columns].findIndex((item) => item === card.closest('.column'));
-        addCardToLocalStorage(movedCard);
+      board.style.cursor = 'grab';
 
-        [...cardBoxes].forEach((element) => {
-          element.addEventListener('mousemove', (event) => mouseMove(event));
-        });
+      if (closestElem.classList.contains('card') || closestElem.classList.contains('add-link')) {
+        const column = closestElem.closest('.column');
+        const cardBox = column.querySelector('.cards-container');
 
-        if (window.getSelection) {
-          window.getSelection().removeAllRanges();
+        if (cardBox.children.length > 0 && closestElem.classList.contains('card')) {
+          cardBox.insertBefore(card, closestElem);
+        } else {
+          cardBox.appendChild(card);
         }
 
-        cardClone.remove();
-        cardClone = null;
-        board.style.cursor = 'default';
+        movedCard.columnIndex = [...columns].findIndex((item) => item === column);
+        addCardToLocalStorage(movedCard);
       }
+
+      board.removeEventListener('mousemove', (event) => mouseMove(event));
+
+      if (window.getSelection) {
+        window.getSelection().removeAllRanges();
+      }
+
+      card.removeEventListener('mousedown', (event) => mouseDown(event));
+      card.classList.remove('card-pre-removed');
+      cardClone.remove();
+      cardClone = null;
+
+      board.style.cursor = 'default';
     }
 
     card.addEventListener('mousedown', (e) => mouseDown(e));
 
-    [...cardBoxes].forEach((element) => {
-      element.addEventListener('mousemove', (e) => mouseMove(e));
-      element.addEventListener('mouseup', (e) => mouseUp(e));
-    });
+    board.addEventListener('mousemove', (e) => mouseMove(e));
+    board.addEventListener('mouseup', (e) => mouseUp(e));
   }
 
   addEventForXmark(xmark) {
